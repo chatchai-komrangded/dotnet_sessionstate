@@ -40,14 +40,14 @@ You can read the blog announcement for this package for detailed instructions on
    
     https://aws.amazon.com/blogs/developer/aws-ssm-asp-net-core-data-protection-provider/
 
-3.) In .NET core project, please get all required package from NuGet package
+- In .NET core project, please get all required package from NuGet package
                     
     * AWSSDK.DynamoDBv2
     * AWSSDK.Extensions.NETCore.Setup
     * Amazon.AspNetCore.DataProtection.SSM
     * Newtonsoft.Json
 
-4.) Adding following line in Startup.cs
+- Adding following line in Startup.cs
 
     // For Method ConfigureServices(IServiceCollection services)
         
@@ -75,7 +75,7 @@ You can read the blog announcement for this package for detailed instructions on
 
         app.UseSession();
 
-5.) Example how to use in HomeController.cs
+- Example how to use in HomeController.cs
 
         public IActionResult Index()
         {

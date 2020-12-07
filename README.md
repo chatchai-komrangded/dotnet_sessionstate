@@ -1,4 +1,4 @@
-# Example Project to Decouple session for .NET, and .NET Cores MVC
+# Example Project to Decouple session state for .NET, and .NET Cores MVC
 
 ## Information
 - AWS Accounts
@@ -38,22 +38,74 @@ Finally for SSM, The package name is Amazon.AspNetCore.DataProtection.SSM
 
 You can read the blog announcement for this package for detailed instructions on using the package: 
    
-    https://aws.amazon.com/blogs/developeraws-ssm-asp-net-core-data-protection-provider/
+    https://aws.amazon.com/blogs/developer/aws-ssm-asp-net-core-data-protection-provider/
 
-3.) In .NET core project, please get all required package from NuGet
+3.) In .NET core project, please get all required package from NuGet package
                     
     * AWSSDK.DynamoDBv2
     * AWSSDK.Extensions.NETCore.Setup
     * Amazon.AspNetCore.DataProtection.SSM
     * Newtonsoft.Json
 
+4.) Adding following line in Startup.cs
+
+    // For Method ConfigureServices(IServiceCollection services)
+        
+        // Create dynamodb first, refer to the Section 1) Implement Session State in ASP.NET
+        services.AddDistributedDynamoDbCache(o => {
+                o.TableName = "DotnetCoreSessionState";
+                o.IdleTimeout = TimeSpan.FromMinutes(30);
+            });
+
+        services.AddSession(o => {
+                o.IdleTimeout = TimeSpan.FromMinutes(30);
+                o.Cookie.HttpOnly = true;
+            });
+
+        //add DynamoDB and SSM to DI
+        services.AddAWSService<IAmazonDynamoDB>();
+ 
+        services.AddDataProtection().PersistKeysToAWSSystemsManager("/MyApplication/DataProtection");
+
+        services.AddMvc();
+
+        services.AddDefaultAWSOptions(Configuration.GetAWSOptions());    
+
+    // For Method Configure(IApplicationBuilder app, IWebHostEnvironment env)
+
+        app.UseSession();
+
+5.) Example how to use in HomeController.cs
+
+        public IActionResult Index()
+        {
+            //Load data from distributed data store asynchronously
+            HttpContext.Session.LoadAsync();
+            
+            //Get value from session
+            var views = (int)(HttpContext.Session.GetInt32("Viewcount") ?? 0) + 1;
+            HttpContext.Session.SetInt32("Viewcount", views);
+            HttpContext.Session.CommitAsync();
+
+            ViewData["Message"] = HttpContext.Session.GetInt32("Viewcount");
+
+            var loginName = HttpContext.Session.GetString("username");
+
+            if (loginName == null) {
+                HttpContext.Session.SetString("username", "chatkom");
+                HttpContext.Session.CommitAsync();
+            }
+            ViewData["Username"] = HttpContext.Session.GetString("username");
+            ViewData["Hostname"] = EC2InstanceMetadata.Hostname;
+
+            return View();
+        }        
 
 
-
-
+You can refer to my example code file name "aspdotnetcoremvc_sessionstate.zip", It's has been tested, and deploy with Multi node elastic beantalk on Windows 2009 IIS 10.
 
     
-Credit: Kirk Davis
+Credit: Kirk Davis For IDistributedCache implementation on DynamoDB,  reference code, and guideline.
 
 Reference Project:
     
